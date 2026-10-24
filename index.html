@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>24SJU Lägesanalys</title>
+<link rel="icon" href="logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:wght@400;500;600;700&family=DynaPuff:wght@500;600&display=swap">
+<style id="gatecss">
+:root{--page:#fffcf7;--surface:#ffffff;--surface3:#f6eee1;--ink:#1e1915;--ink2:#57504a;--muted:#8b8178;--border:rgba(60,40,20,.12);--brand:#835a3a;--brand-soft:rgba(131,90,58,.10);--critical:#c8262c;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--page:#161412;--surface:#1f1c19;--surface3:#2e2924;--ink:#f4efe7;--ink2:#c7bfb4;--muted:#918779;--border:rgba(255,240,220,.12);--brand:#d8b08b;--brand-soft:rgba(216,176,139,.14);--critical:#ef6b6b;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--page);color:var(--ink);font-family:"Google Sans Flex","Google Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+#gate{min-height:100%;display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-left)) 24px max(16px,env(safe-area-inset-right))}
+.box{width:100%;max-width:420px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:30px 28px;box-shadow:0 12px 40px rgba(60,40,20,.08)}
+.box .logo{width:64px;height:68px;display:block;margin-bottom:14px;background:#fffcf7;border-radius:12px;padding:3px}
+.box h1{font-size:26px;letter-spacing:-.02em;margin:0;line-height:1.15}
+.box h1 em{font-style:normal;color:var(--brand)}
+.box p{color:var(--ink2);margin:8px 0 20px;font-size:14.5px}
+label{display:block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+input[type=password]{width:100%;font:inherit;font-size:16px;padding:12px 14px;border-radius:12px;border:1.5px solid var(--border);background:var(--page);color:var(--ink)}
+input[type=password]:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+.row{display:flex;align-items:center;gap:8px;margin:12px 0 18px;font-size:13.5px;color:var(--ink2)}
+.row input{accent-color:var(--brand);width:16px;height:16px}
+button{width:100%;font:inherit;font-weight:700;font-size:15px;padding:12px 16px;border-radius:999px;border:0;background:var(--brand);color:#fff;cursor:pointer}
+button:disabled{opacity:.6;cursor:progress}
+button:focus-visible,input:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.err{color:var(--critical);font-size:13.5px;min-height:20px;margin-top:10px}
+.prog{font-size:12.5px;color:var(--muted);margin-top:10px;min-height:18px}
+.foot{font-size:12px;color:var(--muted);margin-top:18px}
+</style>
+</head>
+<body>
+<div id="gate">
+  <form class="box" id="login" autocomplete="on">
+    <img class="logo" src="logo.svg" alt="24SJU">
+    <h1>Lägesanalys · <em>24SJU</em></h1>
+    <p>Verktyget är låst. Ange lösenordet du fått från 24SJU:s etableringsavdelning.</p>
+    <input type="text" name="username" value="lagesanalys" autocomplete="username" hidden>
+    <label for="pw">Lösenord</label>
+    <input id="pw" type="password" autocomplete="current-password" required autofocus>
+    <div class="row"><input type="checkbox" id="remember"><label for="remember" style="all:unset;cursor:pointer">Kom ihåg mig på den här enheten</label></div>
+    <button id="go" type="submit">Lås upp</button>
+    <div class="err" id="err" role="alert"></div>
+    <div class="prog" id="prog"></div>
+    <div class="foot">Innehållet är krypterat (AES-256) och kan bara läsas med rätt lösenord.</div>
+  </form>
+</div>
+<script>
+(function(){
+'use strict';
+const $=s=>document.querySelector(s);
+const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+let M=null;
+async function manifest(){ if(!M) M=await (await fetch('manifest.json',{cache:'no-cache'})).json(); return M; }
+async function deriveKey(pw){
+  const m=await manifest();
+  const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt:b64(m.salt),iterations:m.iter,hash:'SHA-256'},base,{name:'AES-GCM',length:256},true,['decrypt']);
+}
+async function dec(key,buf){ const u=new Uint8Array(buf); return new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:u.slice(0,12)},key,u.slice(12))); }
+async function inflate(u8){ const st=new Blob([u8]).stream().pipeThrough(new DecompressionStream('gzip')); return await new Response(st).text(); }
+async function loadFile(key,name,onp){
+  const m=await manifest(), parts=m.files[name], bufs=[]; let got=0;
+  for(const p of parts){ const r=await fetch(p.f+'?v='+m.ver); if(!r.ok) throw new Error('Kunde inte hämta '+p.f); const plain=await dec(key,await r.arrayBuffer()); bufs.push(plain); got+=p.size; onp&&onp(got); }
+  const tot=bufs.reduce((a,b)=>a+b.length,0), all=new Uint8Array(tot); let o=0; for(const b of bufs){all.set(b,o);o+=b.length;}
+  return inflate(all);
+}
+async function unlock(key,remember){
+  const m=await manifest();
+  try{ const t=new TextDecoder().decode(await dec(key,b64(m.check))); if(t!=='24SJU-OK') throw 0; }catch(e){ throw new Error('Fel lösenord.'); }
+  if(remember){ try{ const raw=await crypto.subtle.exportKey('raw',key); localStorage.setItem('lage_key_'+m.ver.split('-')[0],btoa(String.fromCharCode(...new Uint8Array(raw)))); }catch(e){} }
+  const total=Object.values(m.files).flat().reduce((a,p)=>a+p.size,0); let done=0;
+  const prog=n=>{$('#prog').textContent='Låser upp och laddar kartdata … '+Math.min(100,Math.round(100*(done+n)/total))+' %';};
+  const app=await loadFile(key,'app',prog); done+=m.files.app.reduce((a,p)=>a+p.size,0);
+  const core=await loadFile(key,'core',prog); done+=m.files.core.reduce((a,p)=>a+p.size,0);
+  const graph=await loadFile(key,'graph',prog);
+  $('#prog').textContent='Startar …';
+  const A=JSON.parse(app);
+  window.__LAGE__={core:JSON.parse(core),graph:JSON.parse(graph),logout:()=>{try{localStorage.removeItem('lage_key_'+m.ver.split('-')[0]);}catch(e){} location.reload();}};
+  document.title='24SJU Lägesanalys';
+  document.getElementById('gatecss')?.remove();
+  const st=document.createElement('style'); st.textContent=A.css; document.head.appendChild(st);
+  document.body.innerHTML=A.body;
+  const sc=document.createElement('script'); sc.textContent=A.js; document.body.appendChild(sc);
+}
+$('#login').addEventListener('submit',async e=>{
+  e.preventDefault(); $('#err').textContent=''; $('#go').disabled=true; $('#prog').textContent='Kontrollerar lösenordet …';
+  try{ const key=await deriveKey($('#pw').value); await unlock(key,$('#remember').checked); }
+  catch(err){ $('#err').textContent=err.message||'Något gick fel. Försök igen.'; $('#prog').textContent=''; $('#go').disabled=false; }
+});
+(async()=>{ try{ const m=await manifest(); const s=localStorage.getItem('lage_key_'+m.ver.split('-')[0]); if(!s) return;
+  $('#prog').textContent='Låser upp …'; $('#go').disabled=true;
+  const key=await crypto.subtle.importKey('raw',b64(s),{name:'AES-GCM'},true,['decrypt']); await unlock(key,false);
+ }catch(e){ try{localStorage.removeItem('lage_key_'+(M?M.ver.split('-')[0]:''));}catch(x){} $('#go').disabled=false; $('#prog').textContent=''; } })();
+})();
+</script>
+</body>
+</html>

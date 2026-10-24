@@ -1,0 +1,31 @@
+{
+ "v": 1,
+ "ver": "pql7szuy-2026-10-24",
+ "iter": 600000,
+ "salt": "fBf5ZpgI8wttqxzFG0wbBA==",
+ "check": "HFaKnHJfFOQ6kSnrzrXERtjeF7kV7QDqK6zXiP9cQ2Kscac5",
+ "files": {
+  "app": [
+   {
+    "f": "data/app-1.bin",
+    "size": 50609
+   }
+  ],
+  "core": [
+   {
+    "f": "data/core-1.bin",
+    "size": 4403722
+   }
+  ],
+  "graph": [
+   {
+    "f": "data/graph-1.bin",
+    "size": 8388636
+   },
+   {
+    "f": "data/graph-2.bin",
+    "size": 2051116
+   }
+  ]
+ }
+}
