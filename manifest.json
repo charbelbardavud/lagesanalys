@@ -1,9 +1,9 @@
 {
  "v": 1,
- "ver": "pql7szuy-2026-10-24",
+ "ver": "65b2chbd-2026-10-24",
  "iter": 600000,
- "salt": "fBf5ZpgI8wttqxzFG0wbBA==",
- "check": "dPVb1Pqj2pgQzSy2WHnAQO3KB9CpfliGk+ebXuna1N4tLtMp",
+ "salt": "90OhHCOnCbgeefs7p43ncg==",
+ "check": "ZpgkmPadXw3pbMj8oTy6OkL42LKImeTKFGGfnY4QjGN3A0VW",
  "files": {
   "app": [
    {
