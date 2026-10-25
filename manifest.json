@@ -1,20 +1,20 @@
 {
  "v": 1,
- "ver": "65b2chbd-2026-10-24",
+ "ver": "65b2chbd-2026-10-25",
  "iter": 600000,
  "salt": "90OhHCOnCbgeefs7p43ncg==",
- "check": "ZpgkmPadXw3pbMj8oTy6OkL42LKImeTKFGGfnY4QjGN3A0VW",
+ "check": "Z9BNcHvE2mB6VGGdDApEB0laCMkiY7IiAUb2UAIETGGsJhXd",
  "files": {
   "app": [
    {
     "f": "data/app-1.bin",
-    "size": 52357
+    "size": 55345
    }
   ],
   "core": [
    {
     "f": "data/core-1.bin",
-    "size": 4403722
+    "size": 4468158
    }
   ],
   "graph": [
